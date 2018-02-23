@@ -48,7 +48,7 @@ def read_from_serial(q=None, preamble='\x3C', escape='\x0A'):
 def write_to_arduino(command, length=0, preamble='\x3C', escape='\x0A'):
     """Write messages to a serial device"""
     transmission = b''
-    if isinstance(command, list):
+    if isinstance(command, list) and length:
         if len(command) == length:
             transmission = bytearray(command)
         else:
