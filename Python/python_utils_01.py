@@ -16,10 +16,13 @@ lambda x: (x * 1, x + 3, x - 6)
 Thread(target=lambda x: x + 1).start()
 
 
-def listen(q):
-    """Reads from a queue"""
+def listen():
+    """Process serial messages"""
     while True:
-        yield q.get()
+        for message in read_from_serial():
+            payload = b''.join(data).decode('ascii')
+            print(payload)
+        sleep(.0001)
 
 
 def read_from_serial(q=None, preamble='\x3C', escape='\x0A'):
@@ -45,7 +48,7 @@ def read_from_serial(q=None, preamble='\x3C', escape='\x0A'):
     serial.close()
 
 
-def write_to_arduino(command, length=0, preamble='\x3C', escape='\x0A'):
+def write_to_serial(command, length=0, preamble='\x3C', escape='\x0A'):
     """Write messages to a serial device"""
     transmission = b''
     if isinstance(command, list) and length:
