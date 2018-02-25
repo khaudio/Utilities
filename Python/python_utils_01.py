@@ -66,9 +66,10 @@ def write_to_serial(command, length=0, preamble='\x3C', escape='\x0A'):
         serial.write(preamble + transmission + escape)
 
 
-def round_down(amount):
-    """Round down the 9th decimal place"""
-    return (floor(amount * 100000000) / 100000000)
+def round_down(amount, decimalPlaces=0):
+    """Round down a chosen decimal place"""
+    multiplied = 10 ** decimalPlaces
+    return floor(amount * multiplied) / multiplied
 
 
 def special_text(text, effect='grey', percentage=False):
@@ -82,7 +83,7 @@ def special_text(text, effect='grey', percentage=False):
                'yellow': '\033[93m',
                'purple': '\033[95m',
                'bold': '\033[1m'}
-    if text.isdigit() and effect is 'grey':
+    if isinstance(text, (int, float)) and effect is 'grey':
         if text > 0:
             effect = 'green'
         elif text < 0:
@@ -102,3 +103,38 @@ def random_data(x, percentChange):
             yield shift
         else:
             yield (shift * (-1))
+
+
+# Tuple of places to asynchronously iterate over
+places = ('home', 'valhalla', 'world')
+
+
+# Example async coroutine
+async def hello(place):
+    print('Hello')
+    await asyncio.sleep(.4)
+    print(place)
+
+
+# Example async coroutine
+async def goodbye(place):
+    print('Goodbye')
+    await asyncio.sleep(1.3)
+    print(place)
+
+
+# Add coroutines to the loop
+for place in places:
+    asyncio.ensure_future(hello(place))
+    asyncio.ensure_future(goodbye(place))
+
+
+# asyncio loop example/boilerplate
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        loop.close()
