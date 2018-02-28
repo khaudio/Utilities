@@ -161,7 +161,7 @@ def special_text(text, effect='grey', percentage=False):
             effect = 'red'
         text = str(text)
         if percentage:
-            text = text + ' %'
+            text += ' %'
     return ''.join(effects[effect], text, effects['grey'])
 
 
