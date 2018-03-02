@@ -17,7 +17,7 @@ t = Thread(target=lambda: (x * 1, x + 3, x - 6)).start()
 
 class CommBase(object):
     def __init__(self, port=None, baud=None):
-        self.alive, self.preamble, self.escape, self.received = True, '\x3C', '\x0A', Queue()
+        self.alive, self.received, self.preamble, self.escape  = True, Queue(), '\x3C', '\x0A'
         self.serial = Serial(
             port = '/dev/ttyACM0' if port is None else port,
             baudrate = 9600 if baud is None else baud,
@@ -26,7 +26,7 @@ class CommBase(object):
             )
         self.reader = Process(target=self.read_from_serial)
         self.listener = Process(target=self.listen)
-        for proc in [self.reader, self.listener]:
+        for proc in (self.reader, self.listener):
             proc.start()
 
 
@@ -36,14 +36,16 @@ class CommBase(object):
 
     def __exit__(self, a, b, c):
         self.alive = False
-        map(lambda proc: (proc.terminate(), proc.join()), (self.reader, self.listener))
+        for proc in (self.reader, self.listener):
+            proc.terminate()
+            proc.join()
         self.serial.close()
 
 
     def run(self):
-        while True:
+        while self.alive:
             try:
-                pass
+                pass #
             except KeyboardInterrupt:
                 break
             sleep(.0001)
