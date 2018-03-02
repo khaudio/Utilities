@@ -7,7 +7,20 @@ Code stored for re-use
 from threading import Thread
 from multiprocessing import Queue
 from serial import Serial, EIGHTBITS
+from sys import _getframe
 import asyncio
+
+
+def from_coroutine():
+    return _getframe(2).f_code.co_flags & 0x380
+
+
+def is_async():
+    """Determine whether this function was invoked by a coroutine"""
+    if from_coroutine(): # called by a coroutine
+        pass
+    else: # called by a function
+        pass
 
 
 # Create and start a function and thread with multiple operations
