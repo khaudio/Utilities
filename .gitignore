@@ -1,2 +1,4 @@
 .DS_Store
-
+Python/private.py
+Python/__pycache__
+Python/*.json
