@@ -23,14 +23,15 @@ def is_async():
         pass
 
 
-# Create and start a function and thread with multiple operations
-x = 1
-t = Thread(target=lambda: (x * 1, x + 3, x - 6)).start()
+# Create and start a function and non-blocking thread with multiple operations
+def do_thread(x=1):
+    Thread(target=lambda: (x * 1, x + 3, x - 6)).start()
 
 
-class CommBase(object):
+class CommBase:
     def __init__(self, port=None, baud=None):
-        self.alive, self.received, self.preamble, self.escape  = True, Queue(), '\x3C', '\x0A'
+        self.alive, self.received  = True, Queue()
+        self.preamble, self.escape = '\x3C', '\x0A'
         self.serial = Serial(
             port = '/dev/ttyACM0' if port is None else port,
             baudrate = 9600 if baud is None else baud,
@@ -42,10 +43,8 @@ class CommBase(object):
         for proc in (self.reader, self.listener):
             proc.start()
 
-
     def __enter__(self):
         return self
-
 
     def __exit__(self, a, b, c):
         self.alive = False
@@ -54,15 +53,13 @@ class CommBase(object):
             proc.join()
         self.serial.close()
 
-
     def run(self):
         while self.alive:
             try:
-                pass #
+                pass
             except KeyboardInterrupt:
                 break
             sleep(.0001)
-
 
     def listen(self):
         """Process serial messages"""
@@ -71,7 +68,6 @@ class CommBase(object):
             payload = b''.join(message).decode('ascii')
             print(payload)
             del message, payload
-
 
     def read_from_serial(self):
         """Read messages from a serial device"""
@@ -92,7 +88,6 @@ class CommBase(object):
                         message.append(data)
             del data
 
-
     def write_to_serial(self, command, length=0):
         """Write messages to a serial device"""
         transmission = b''
@@ -111,55 +106,47 @@ class CommBase(object):
             self.serial.write(self.preamble + transmission + self.escape)
 
 
-class ExampleAsync(object):
+class AsyncBase:
+    """Abstracts asyncio usage so less boilerplate code is required"""
     def __init__(self):
         self.loop = asyncio.get_event_loop()
-        self.places = set()
-
+        self.coroutines = []
 
     def __enter__(self):
         return self
 
-
-    def __exit__(self, a, b, c):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.loop.close()
 
+    def add_tasks(self, *coroutines):
+        """Adds one or more coroutines, but does not execute them"""
+        for coroutine in coroutines:
+            self.coroutines.append(asyncio.ensure_future(coroutine))
 
-    def add(self, *places):
-        for place in places:
-            assert isinstance(place, str), 'Must be str'
-            self.places.add(place)
-
-
-    def start(self):
-        """Start the event loop to run the coroutines"""
-        coroutines = []
-        for place in self.places:
-            coroutines.extend([
-                asyncio.ensure_future(self.hello(place)),
-                asyncio.ensure_future(self.goodbye(place))
-                ])
-        self.loop.run_until_complete(asyncio.gather(*coroutines))
+    def do_tasks(self):
+        """Executes async coroutines"""
+        self.loop.run_until_complete(asyncio.gather(*self.coroutines))
 
 
+class ExampleAsync(AsyncBase):
+    """Example class for demonstrating abstracted async task execution"""
     async def hello(self, place):
         """Example async coroutine"""
         print('Hello')
-        await asyncio.sleep(.4)
+        await asyncio.sleep(0)
         print(place)
-
 
     async def goodbye(self, place):
         """Example async coroutine"""
         print('Goodbye')
-        await asyncio.sleep(1.3)
+        await asyncio.sleep(0)
         print(place)
 
 
-def round_down(amount, decimalPlaces=0):
-    """Round down a chosen decimal place"""
+def round_down(num, decimalPlaces=0):
+    """Rounds down to a chosen decimal place"""
     multiplied = 10 ** decimalPlaces
-    return floor(amount * multiplied) / multiplied
+    return floor(num * multiplied) / multiplied
 
 
 def special_text(text, effect='grey', percentage=False):
@@ -167,8 +154,10 @@ def special_text(text, effect='grey', percentage=False):
     Adds effects to print output.
     Positive numbers are green, negative numbers are red, unless overridden.
     """
-    effects = {'red': '\033[91m', 'grey': '\033[0m', 'green': '\033[92m',
-               'yellow': '\033[93m', 'purple': '\033[95m', 'bold': '\033[1m'}
+    effects = {
+            'red': '\033[91m', 'grey': '\033[0m', 'green': '\033[92m',
+            'yellow': '\033[93m', 'purple': '\033[95m', 'bold': '\033[1m'
+        }
     if isinstance(text, (int, float)) and effect is 'grey':
         if text > 0:
             effect = 'green'
@@ -192,7 +181,8 @@ def random_data(x, percentChange):
 
 
 if __name__ == '__main__':
-    places = ('home', 'valhalla', 'world')
-    with ExampleAsync() as e:
-        e.add(*places)
-        e.start()
+    places = ('Home', 'Valhalla', 'World')
+    with ExampleAsync() as example:
+        for place in places:
+            example.add_tasks(example.hello(place), example.goodbye(place))
+        example.do_tasks()
