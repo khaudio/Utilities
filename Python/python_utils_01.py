@@ -9,6 +9,25 @@ from multiprocessing import Queue
 from serial import Serial, EIGHTBITS
 from sys import _getframe
 import asyncio
+from time import sleep
+import statistics
+
+
+def timer(func, times=100):
+    """Decorator that times and prints average runtime of a function"""
+    index = []
+    def outer(*args, **kwargs):
+        def inner():
+            startTime = time()
+            func(*args, **kwargs)
+            endTime = time()
+            index.append(endTime - startTime)
+        for i, n in enumerate(range(times)):
+            # print(f'\rtick {i}')
+            inner()
+        average = statistics.mean(index)
+        print(f'Averaged {average} seconds')
+    return outer
 
 
 def from_coroutine():
@@ -31,12 +50,12 @@ def do_thread(x=1):
 class CommBase:
     def __init__(self, port=None, baud=None):
         self.alive, self.received  = True, Queue()
-        self.preamble, self.escape = '\x3C', '\x0A'
+        self.preamble, self.escape = b'\x3C', b'\x0A'
         self.serial = Serial(
-            port = '/dev/ttyACM0' if port is None else port,
-            baudrate = 9600 if baud is None else baud,
-            bytesize = EIGHTBITS,
-            timeout = 1
+                port = '/dev/ttyACM0' if port is None else port,
+                baudrate = 9600 if baud is None else baud,
+                bytesize = EIGHTBITS,
+                timeout = 1
             )
         self.reader = Process(target=self.read_from_serial)
         self.listener = Process(target=self.listen)
@@ -65,7 +84,7 @@ class CommBase:
         """Process serial messages"""
         while self.alive:
             message = self.received.get()
-            payload = b''.join(message).decode('ascii')
+            payload = b''.join(message).decode()
             print(payload)
             del message, payload
 
